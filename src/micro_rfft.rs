@@ -61,6 +61,24 @@ impl MicroFftContext {
         Self::complex_hadamard_product_norm(&fft0, &fft1, &mut self.cscratch0);
     }
 
+    /// Returns a row-major array of complex numbers representing the motion information.
+    pub fn optical_flow_grid(&mut self, new_frame: &[u8], old_frame: &[u8], columns: usize, rows: usize) -> [Complex32; BLOCK_LEN] {
+        self.compute_optical_flow_grid(new_frame, old_frame, columns, rows);
+        self.cscratch0.clone()
+    }
+
+    fn compute_optical_flow_grid(&mut self, new_frame: &[u8], old_frame: &[u8], columns: usize, rows: usize) {
+        assert_eq!(columns, ROW_DIM, "Only {} rows supported", COL_DIM);
+        assert_eq!(rows, ROW_DIM, "Only {} rows supported", ROW_DIM);
+        let nsamples = columns * rows;
+        let x_limit = columns / 2;
+        let y_limit = rows / 2;
+        assert_eq!(nsamples, BLOCK_LEN, "nsamples restricted to {}", BLOCK_LEN);
+
+        self.cross_power_spectrum_norm(&old_frame, &new_frame);
+        Self::invert_fft(&mut self.cscratch0);
+    }
+
     ///
     /// Calculate the translation (flow) between two 8-bit mono image frames
     /// - old_frame and new_frame image frames with pixels in row-major-order.
@@ -73,16 +91,7 @@ impl MicroFftContext {
         columns: usize,
         rows: usize,
     ) -> (i16, i16) {
-        assert_eq!(columns, ROW_DIM, "Only {} rows supported", COL_DIM);
-        assert_eq!(rows, ROW_DIM, "Only {} rows supported", ROW_DIM);
-        let nsamples = columns * rows;
-        let x_limit = columns / 2;
-        let y_limit = rows / 2;
-        assert_eq!(nsamples, BLOCK_LEN, "nsamples restricted to {}", BLOCK_LEN);
-
-        self.cross_power_spectrum_norm(&old_frame, &new_frame);
-        Self::invert_fft(&mut self.cscratch0);
-
+        self.compute_optical_flow_grid(new_frame, old_frame, columns, rows);
         let (max_x, max_y, _max_val) =
             super::find_peak_real(&self.cscratch0, columns);
 
