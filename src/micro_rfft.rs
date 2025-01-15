@@ -62,8 +62,8 @@ impl MicroFftContext {
     }
 
     /// Returns a row-major array of complex numbers representing the motion information.
-    pub fn optical_flow_grid(&mut self, new_frame: &[u8], old_frame: &[u8], columns: usize, rows: usize) -> [Complex32; BLOCK_LEN] {
-        self.compute_optical_flow_grid(new_frame, old_frame, columns, rows);
+    pub fn optical_flow_grid(&mut self, new_frame: &[u8], old_frame: &[u8]) -> [Complex32; BLOCK_LEN] {
+        self.compute_optical_flow_grid(new_frame, old_frame, COL_DIM, ROW_DIM);
         self.cscratch0.clone()
     }
 
